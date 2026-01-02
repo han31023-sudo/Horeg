@@ -20,7 +20,7 @@ jobs:
 
       - name: Install & Build
         run: |
-          cd Horeg
+          cd horeg
           npm install
           npm run build
 
@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: horeg-build-result
-          path: Horeg/dist/
+          path: horeg/dist/
