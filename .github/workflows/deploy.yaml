@@ -1,4 +1,4 @@
-name: Deploy Horeg Project
+name: Build Horeg
 
 on:
   push:
@@ -16,14 +16,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
+      - name: Install
         run: npm install
 
-      - name: Build Project
+      - name: Build
         run: npm run build
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-files
-          path: dist/
