@@ -17,17 +17,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          # Menunjuk ke file lock yang ada di dalam folder Horeg
-          cache-dependency-path: Horeg/package-lock.json
 
       - name: Install Dependencies
-        # Pindah ke folder Horeg sebelum install
         working-directory: ./Horeg
         run: npm install
 
       - name: Build Project
-        # Pindah ke folder Horeg sebelum build
         working-directory: ./Horeg
         run: npm run build
 
@@ -35,5 +30,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: horeg-build-result
-          # Mengambil folder dist yang ada di dalam folder Horeg
           path: Horeg/dist/
