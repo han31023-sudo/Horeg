@@ -1,23 +1,34 @@
-name: Build Horeg
+name: Build Horeg Project
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main  # Atau ganti ke 'master' kalau branch utama kamu namanya master
 
 jobs:
-  build:
+  build_job:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      - name: Install
+      - name: Install Dependencies
         run: npm install
 
-      - name: Build
+      - name: Build Project
         run: npm run build
+        # Kita pakai 'npm run build' karena tadi di package.json sudah kita hapus tsc-nya biar gak error
+
+      - name: Simpan Hasil Build (Downloadable)
+        uses: actions/upload-artifact@v4
+        with:
+          name: horeg-build-result
+          path: dist/
+          retention-days: 5
