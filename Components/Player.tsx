@@ -36,13 +36,32 @@ const Player: React.FC<PlayerProps> = ({ currentSong, isPlaying, onPlayPause, on
   useEffect(() => {
     if (!audioRef.current || audioContextRef.current) return;
 
-    try {
+    const initAudio = () => {
+      try {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
         const ctx = new AudioContextClass();
         audioContextRef.current = ctx;
 
-        const source = ctx.createMediaElementSource(audioRef.current);
+        const source = ctx.createMediaElementSource(audioRef.current!);
         sourceNodeRef.current = source;
+
+        // ... kodingan filter bass, mid, treble kamu (tetap sama) ...
+        
+        // TAMBAHKAN INI: Pastikan context jalan saat user klik
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+
+        source.connect(bass); // lanjut ke koneksi filter kamu
+        // ... dst
+      } catch (e) {
+        console.warn("Web Audio API error:", e);
+      }
+    };
+
+    // Jalankan init saat pertama kali komponen muncul
+    initAudio();
+  }, []);
 
         // Create Filters
         const bass = ctx.createBiquadFilter();
