@@ -179,11 +179,11 @@ const Player: React.FC<PlayerProps> = ({ currentSong, isPlaying, onPlayPause, on
   return (
     <>
       <audio 
-        ref={audioRef}
-        crossOrigin="anonymous" 
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={onNext}
-      />
+  ref={audioRef}
+  onTimeUpdate={handleTimeUpdate}
+  onEnded={onNext}
+  onError={(e) => console.error("Audio Error:", e)}
+/>
       
       {/* Changed pl-2/px-2 to pl-0 to force content to the absolute left edge */}
       <div className="h-24 bg-black border-t border-horeg-light pl-0 pr-2 flex items-center justify-between text-horeg-text z-[100] relative">
