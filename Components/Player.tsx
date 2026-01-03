@@ -199,9 +199,14 @@ const Player: React.FC<PlayerProps> = ({ currentSong, isPlaying, onPlayPause, on
     <>
       <audio 
   ref={audioRef}
+  preload="auto"
   onTimeUpdate={handleTimeUpdate}
   onEnded={onNext}
-  onError={(e) => console.error("Audio Error:", e)}
+  onLoadedMetadata={() => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  }}
 />
       
       {/* Changed pl-2/px-2 to pl-0 to force content to the absolute left edge */}
