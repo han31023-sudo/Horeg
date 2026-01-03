@@ -1,0 +1,27 @@
+cat <<EOF > src/index.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background-color: #000;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar biar keren */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #121212;
+}
+::-webkit-scrollbar-thumb {
+  background: #282828;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #1DB954;
+}
+EOF
