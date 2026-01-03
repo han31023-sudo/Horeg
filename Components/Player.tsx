@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Mic2, Heart, Volume2, ChevronDown } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Mic2 } from 'lucide-react';
 import { Song } from '../types';
 
 interface PlayerProps {
@@ -10,164 +10,105 @@ interface PlayerProps {
   onPrev: () => void;
   toggleLyrics: () => void;
   showLyrics: boolean;
-  eqSettings?: {
-      bass: number;
-      mid: number;
-      treble: number;
-  };
 }
 
-const Player: React.FC<PlayerProps> = ({ currentSong, isPlaying, onPlayPause, onNext, onPrev, toggleLyrics, showLyrics, eqSettings }) => {
-  const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(100);
-  const [duration, setDuration] = useState(0);
-  
+const Player: React.FC<PlayerProps> = ({ currentSong, isPlaying, onPlayPause, onNext, onPrev, toggleLyrics, showLyrics }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const bassFilterRef = useRef<BiquadFilterNode | null>(null);
-  const midFilterRef = useRef<BiquadFilterNode | null>(null);
-  const trebleFilterRef = useRef<BiquadFilterNode | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
 
-  // 1. Inisialisasi Audio Engine (HOREG Engine)
-  useEffect(() => {
-    if (!audioRef.current || audioContextRef.current) return;
-
-    const initAudio = () => {
-      try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        const ctx = new AudioContextClass();
-        audioContextRef.current = ctx;
-
-        const source = ctx.createMediaElementSource(audioRef.current!);
-        sourceNodeRef.current = source;
-
-        // Create Filters
-        const bass = ctx.createBiquadFilter();
-        bass.type = "lowshelf";
-        bass.frequency.value = 200;
-        bassFilterRef.current = bass;
-
-        const mid = ctx.createBiquadFilter();
-        mid.type = "peaking";
-        mid.frequency.value = 1500;
-        mid.Q.value = 1;
-        midFilterRef.current = mid;
-
-        const treble = ctx.createBiquadFilter();
-        treble.type = "highshelf";
-        treble.frequency.value = 3000;
-        trebleFilterRef.current = treble;
-
-        // Connect Chain: Source -> Bass -> Mid -> Treble -> Destination
-        source.connect(bass);
-        bass.connect(mid);
-        mid.connect(treble);
-        treble.connect(ctx.destination);
-
-      } catch (e) {
-        console.warn("Web Audio API initialization failed:", e);
-      }
-    };
-
-    initAudio();
-  }, []);
-
-  // 2. Update EQ (Settingan HOREG)
-  useEffect(() => {
-    if (eqSettings && bassFilterRef.current && midFilterRef.current && trebleFilterRef.current) {
-        const bassGain = ((eqSettings.bass - 50) / 50) * 20; 
-        const midGain = ((eqSettings.mid - 50) / 50) * 15;
-        const trebleGain = ((eqSettings.treble - 50) / 50) * 15;
-
-        const now = audioContextRef.current?.currentTime || 0;
-        bassFilterRef.current.gain.setTargetAtTime(bassGain, now, 0.1);
-        midFilterRef.current.gain.setTargetAtTime(midGain, now, 0.1);
-        trebleFilterRef.current.gain.setTargetAtTime(trebleGain, now, 0.1);
-    }
-  }, [eqSettings]);
-
-  // 3. Handle Playback & Bangunkan AudioContext
+  // Fungsi Play/Pause
   useEffect(() => {
     if (audioRef.current && currentSong) {
-      if (audioRef.current.src !== currentSong.audioUrl) {
-        audioRef.current.src = currentSong.audioUrl || '';
-        audioRef.current.load();
-      }
-      
       if (isPlaying) {
-        // MEMBANGUNKAN AUDIO JIKA TIDUR (Klik User)
-        if (audioContextRef.current?.state === 'suspended') {
-            audioContextRef.current.resume();
-        }
-        audioRef.current.play().catch(e => console.log("Menunggu klik user..."));
+        audioRef.current.play().catch(() => {
+          console.log("Klik layar dulu biar suara keluar!");
+        });
       } else {
         audioRef.current.pause();
       }
     }
-  }, [currentSong, isPlaying]);
+  }, [isPlaying, currentSong]);
 
-  // 4. Media Session (Layar Kunci)
-  useEffect(() => {
-    if ('mediaSession' in navigator && currentSong) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentSong.title,
-        artist: currentSong.artist,
-        album: currentSong.album,
-        artwork: [{ src: currentSong.coverUrl, sizes: '512x512', type: 'image/jpeg' }]
-      });
-      navigator.mediaSession.setActionHandler('play', onPlayPause);
-      navigator.mediaSession.setActionHandler('pause', onPlayPause);
-      navigator.mediaSession.setActionHandler('previoustrack', onPrev);
-      navigator.mediaSession.setActionHandler('nexttrack', onNext);
-    }
-  }, [currentSong, onPlayPause, onNext, onPrev]);
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      const current = audioRef.current.currentTime;
-      const total = audioRef.current.duration;
-      setDuration(total);
-      if (total > 0) setProgress((current / total) * 100);
-    }
+  const onTimeUpdate = () => {
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
   };
 
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = Number(e.target.value);
-    setProgress(newVal);
-    if (audioRef.current) {
-      audioRef.current.currentTime = (newVal / 100) * (audioRef.current.duration || 0);
-    }
+  const onLoadedMetadata = () => {
+    if (audioRef.current) setDuration(audioRef.current.duration);
   };
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const vol = Number(e.target.value);
-    setVolume(vol);
-    if (audioRef.current) audioRef.current.volume = vol / 100;
-  };
-
-  const formatTime = (seconds: number) => {
-    if (!seconds || isNaN(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const formatTime = (time: number) => {
+    const min = Math.floor(time / 60);
+    const sec = Math.floor(time % 60);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
   };
 
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-24 bg-black border-t border-horeg-light flex items-center justify-between text-white z-[100] px-4">
+    <div className="fixed bottom-0 left-0 right-0 h-24 bg-[#000000] border-t border-[#282828] flex items-center justify-between px-4 z-50">
       <audio 
         ref={audioRef}
-        preload="auto"
-        onTimeUpdate={handleTimeUpdate}
+        src={currentSong.audioUrl}
+        onTimeUpdate={onTimeUpdate}
+        onLoadedMetadata={onLoadedMetadata}
         onEnded={onNext}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+        preload="auto"
       />
-      
-      {/* Info Lagu */}
-      <div className="flex items-center gap-3 w-1/3 min-w-[150px]">
-        <img src={currentSong.coverUrl} className="h-14 w-14 rounded-md object-cover" alt="cover" />
-        <div className="flex flex-col overflow-hidden">
-          <span className="text-sm font-bold truncate">{currentSong.title}</span>
-          <span className="text-xs text-gray
+
+      {/* Info Lagu - Kiri */}
+      <div className="flex items-center gap-4 w-[30%]">
+        <img src={currentSong.coverUrl} className="h-14 w-14 rounded shadow-lg object-cover" alt="cover" />
+        <div className="overflow-hidden">
+          <div className="text-sm font-bold text-white truncate">{currentSong.title}</div>
+          <div className="text-xs text-[#b3b3b3] truncate">{currentSong.artist}</div>
+        </div>
+      </div>
+
+      {/* Control - Tengah */}
+      <div className="flex flex-col items-center w-[40%] max-w-[600px]">
+        <div className="flex items-center gap-6 mb-2">
+          <button onClick={onPrev} className="text-[#b3b3b3] hover:text-white transition"><SkipBack size={20} /></button>
+          <button 
+            onClick={onPlayPause} 
+            className="bg-white rounded-full p-2 text-black hover:scale-105 transition active:scale-95"
+          >
+            {isPlaying ? <Pause size={28} fill="black" /> : <Play size={28} fill="black" className="pl-1" />}
+          </button>
+          <button onClick={onNext} className="text-[#b3b3b3] hover:text-white transition"><SkipForward size={20} /></button>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="w-full flex items-center gap-2">
+          <span className="text-[10px] text-[#b3b3b3] min-w-[30px] text-right">{formatTime(currentTime)}</span>
+          <div className="flex-1 h-1 bg-[#4d4d4d] rounded-full relative group">
+            <div 
+              className="absolute h-full bg-white group-hover:bg-[#1DB954] rounded-full" 
+              style={{ width: `${(currentTime / duration) * 100}%` }}
+            ></div>
+          </div>
+          <span className="text-[10px] text-[#b3b3b3] min-w-[30px]">{formatTime(duration)}</span>
+        </div>
+      </div>
+
+      {/* Fitur Lain - Kanan */}
+      <div className="flex items-center gap-4 w-[30%] justify-end">
+        <button 
+          onClick={toggleLyrics} 
+          className={`${showLyrics ? 'text-[#1DB954]' : 'text-[#b3b3b3]'} hover:text-white`}
+        >
+          <Mic2 size={18} />
+        </button>
+        <div className="flex items-center gap-2 w-24">
+          <Volume2 size={18} text-[#b3b3b3] />
+          <div className="flex-1 h-1 bg-[#4d4d4d] rounded-full">
+            <div className="h-full bg-white rounded-full w-[70%]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Player;
